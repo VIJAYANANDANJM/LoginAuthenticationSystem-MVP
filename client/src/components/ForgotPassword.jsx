@@ -1,38 +1,34 @@
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-export default function Register() {
+export default function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: null, message: "" });
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ type: null, message: "" });
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", { email, password });
-      let message = res.data.message || "Registration successful! Please check your email to verify your account.";
+      const res = await axios.post("http://localhost:5000/api/auth/forgot-password", { email });
+      let message = res.data.message || "If an account exists with this email, a password reset link has been sent.";
       
       // Show dev link if available
-      if (res.data.devVerificationLink) {
-        message += `\n\n🔗 Development Link: ${res.data.devVerificationLink}`;
+      if (res.data.devResetLink) {
+        message += `\n\n🔗 Development Link: ${res.data.devResetLink}`;
       }
       
       setStatus({
         type: "success",
         message,
       });
-      setTimeout(() => navigate("/"), 5000);
     } catch (err) {
-      const message =
-        err?.response?.data?.message || err?.message || "Something went wrong. Please try again.";
-      const detail = err?.response?.data?.detail;
-      const composed = detail && detail !== message ? `${message} (${detail})` : message;
-      setStatus({ type: "error", message: composed });
+      setStatus({
+        type: "error",
+        message: err?.response?.data?.message || "Something went wrong. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -45,30 +41,24 @@ export default function Register() {
         <span className="text-sm font-semibold tracking-wide">LOGIN AUTHENTICATION SYSTEM</span>
       </div>
 
-      <div className="absolute top-6 right-10 flex gap-2">
+      <div className="absolute top-6 right-10">
         <Link
           to="/"
           className="rounded-lg border border-sky-900/20 px-4 py-1 text-sm font-medium text-sky-900/90 transition hover:bg-white/80 hover:text-sky-900"
         >
           Back to Login
         </Link>
-        <a
-          href="http://localhost:5000/api/auth/google"
-          className="rounded-lg border border-sky-900/20 px-4 py-1 text-sm font-medium text-sky-900/90 transition hover:bg-white/80 hover:text-sky-900"
-        >
-          Google
-        </a>
       </div>
 
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-10 shadow-2xl backdrop-blur">
         <h2 className="mb-1 text-center text-3xl font-bold text-slate-800">
-          Create your <span className="text-sky-600">account</span>
+          Reset your <span className="text-sky-600">password</span>
         </h2>
         <p className="mb-6 text-center text-sm text-slate-500">
-          Join the Login Authentication System and start building securely.
+          Enter your email address and we'll send you a link to reset your password.
         </p>
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
               type="email"
@@ -76,16 +66,6 @@ export default function Register() {
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              className="w-full rounded-lg border border-slate-200 px-4 py-2 text-slate-700 placeholder-slate-400 outline-none focus:ring-2 focus:ring-sky-200"
-              placeholder="Create password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
@@ -122,13 +102,13 @@ export default function Register() {
             disabled={loading}
             className="flex w-full items-center justify-center space-x-2 rounded-lg bg-sky-600 py-2 font-semibold text-white transition-all duration-300 hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-sky-400/70"
           >
-            <span>{loading ? "Creating..." : "Create account"}</span>
+            <span>{loading ? "Sending..." : "Send reset link"}</span>
             <span className="text-lg">→</span>
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
-          Already have an account?{" "}
+          Remember your password?{" "}
           <Link to="/" className="font-semibold text-sky-600 hover:underline">
             Log in
           </Link>
@@ -137,3 +117,4 @@ export default function Register() {
     </div>
   );
 }
+
