@@ -75,7 +75,8 @@ export const sendEmail = async (to, subject, html, text = "") => {
  * Sends a verification email with clickable link.
  */
 export const sendVerificationEmail = async (email, token) => {
-  const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${token}`;
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
+  const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
   const subject = "Verify Your Email Address";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -96,7 +97,8 @@ export const sendVerificationEmail = async (email, token) => {
  * Sends a password reset email.
  */
 export const sendPasswordResetEmail = async (email, token) => {
-  const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${token}`;
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
+  const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
   const subject = "Reset Your Password";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

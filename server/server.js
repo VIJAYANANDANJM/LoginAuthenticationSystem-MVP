@@ -136,9 +136,10 @@ app.post("/api/auth/register", async (req, res) => {
     const emailResult = await sendVerificationEmail(email, verificationToken);
     
     // Always log verification link (especially if email failed)
-    const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}`;
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
+    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
     
-    if (!emailResult.success || !process.env.EMAIL_USER) {
+    if (!emailResult.success || !process.env.BREVO_API_KEY) {
       console.log("\n" + "=".repeat(60));
       console.log("🔗 VERIFICATION LINK (Copy this if email failed):");
       console.log(verificationUrl);
@@ -242,9 +243,10 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     const emailResult = await sendPasswordResetEmail(user.email, resetToken);
     
     // Always log reset link (especially if email failed)
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
     
-    if (!emailResult.success || !process.env.EMAIL_USER) {
+    if (!emailResult.success || !process.env.BREVO_API_KEY) {
       console.log("\n" + "=".repeat(60));
       console.log("🔗 PASSWORD RESET LINK (Copy this if email failed):");
       console.log(resetUrl);
