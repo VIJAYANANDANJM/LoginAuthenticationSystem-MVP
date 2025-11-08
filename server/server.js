@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://login-authenticationsystem-mvp.vercel.app",
+  "https://login-authentication-system-mvp.vercel.app",
 ];
 
 // ✅ Apply CORS before any routes
@@ -147,8 +147,9 @@ app.post("/api/auth/register", async (req, res) => {
     const emailResult = await sendVerificationEmail(email, verificationToken);
     
     // Always log verification link (especially if email failed)
-    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
-    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+    const verificationUrl = `${backendUrl}/api/auth/verify-email?token=${verificationToken}&redirect=${encodeURIComponent(frontendUrl)}`;
     
     if (!emailResult.success || !process.env.BREVO_API_KEY) {
       console.log("\n" + "=".repeat(60));
@@ -175,9 +176,13 @@ app.post("/api/auth/register", async (req, res) => {
 // ====== Verify Email API ======
 app.get("/api/auth/verify-email", async (req, res) => {
   try {
-    const { token } = req.query;
+    const { token, redirect } = req.query;
+    const frontendUrl = redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = frontendUrl.replace(/\/$/, "");
+
     if (!token) {
-      return res.status(400).json({ message: "Verification token is required." });
+      // Redirect to frontend with error
+      return res.redirect(`${baseUrl}/?error=verification_failed&message=${encodeURIComponent("Verification token is required.")}`);
     }
 
     const user = await User.findOne({
@@ -186,7 +191,8 @@ app.get("/api/auth/verify-email", async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid or expired verification token." });
+      // Redirect to frontend with error
+      return res.redirect(`${baseUrl}/?error=verification_failed&message=${encodeURIComponent("Invalid or expired verification token.")}`);
     }
 
     user.isVerified = true;
@@ -194,10 +200,13 @@ app.get("/api/auth/verify-email", async (req, res) => {
     user.verificationTokenExpiry = undefined;
     await user.save();
 
-    res.status(200).json({ message: "✅ Email verified successfully!" });
+    // Redirect to frontend with success message
+    res.redirect(`${baseUrl}/?verified=true&message=${encodeURIComponent("Email verified successfully! You can now log in.")}`);
   } catch (error) {
     console.error("❌ Email Verification Error:", error);
-    res.status(500).json({ message: "Server error during verification." });
+    const frontendUrl = req.query.redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = frontendUrl.replace(/\/$/, "");
+    res.redirect(`${baseUrl}/?error=verification_failed&message=${encodeURIComponent("Server error during verification.")}`);
   }
 });
 
@@ -254,8 +263,9 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     const emailResult = await sendPasswordResetEmail(user.email, resetToken);
     
     // Always log reset link (especially if email failed)
-    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+    const resetUrl = `${backendUrl}/api/auth/reset-password?token=${resetToken}&redirect=${encodeURIComponent(frontendUrl)}`;
     
     if (!emailResult.success || !process.env.BREVO_API_KEY) {
       console.log("\n" + "=".repeat(60));
@@ -277,6 +287,38 @@ app.post("/api/auth/forgot-password", async (req, res) => {
 });
 
 // ====== Reset Password API ======
+// GET endpoint - shows reset password form or redirects
+app.get("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { token, redirect } = req.query;
+    const frontendUrl = redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = frontendUrl.replace(/\/$/, "");
+
+    if (!token) {
+      return res.redirect(`${baseUrl}/?error=reset_failed&message=${encodeURIComponent("Reset token is required.")}`);
+    }
+
+    // Verify token is valid
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.redirect(`${baseUrl}/?error=reset_failed&message=${encodeURIComponent("Invalid or expired reset token.")}`);
+    }
+
+    // Redirect to frontend reset password page with token
+    res.redirect(`${baseUrl}/reset-password?token=${token}`);
+  } catch (error) {
+    console.error("❌ Reset Password GET Error:", error);
+    const frontendUrl = req.query.redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = frontendUrl.replace(/\/$/, "");
+    res.redirect(`${baseUrl}/?error=reset_failed&message=${encodeURIComponent("Server error.")}`);
+  }
+});
+
+// POST endpoint - actually resets the password
 app.post("/api/auth/reset-password", async (req, res) => {
   try {
     const { token, password } = req.body;

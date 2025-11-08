@@ -75,8 +75,10 @@ export const sendEmail = async (to, subject, html, text = "") => {
  * Sends a verification email with clickable link.
  */
 export const sendVerificationEmail = async (email, token) => {
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
-  const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
+  // Use backend API endpoint for verification (verifies and redirects to frontend)
+  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+  const verificationUrl = `${backendUrl}/api/auth/verify-email?token=${token}&redirect=${encodeURIComponent(frontendUrl)}`;
   const subject = "Verify Your Email Address";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -97,8 +99,10 @@ export const sendVerificationEmail = async (email, token) => {
  * Sends a password reset email.
  */
 export const sendPasswordResetEmail = async (email, token) => {
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""); // Remove trailing slash
-  const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+  // Use backend API endpoint for password reset (redirects to frontend)
+  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+  const resetUrl = `${backendUrl}/api/auth/reset-password?token=${token}&redirect=${encodeURIComponent(frontendUrl)}`;
   const subject = "Reset Your Password";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

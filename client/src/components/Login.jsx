@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { API_URL } from "../config";
 
 export default function Login() {
@@ -8,10 +8,31 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [requires2FA, setRequires2FA] = useState(false);
   const [requiresVerification, setRequiresVerification] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Check for verification messages from URL parameters
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    const errorParam = searchParams.get("error");
+    const message = searchParams.get("message");
+
+    if (verified === "true" && message) {
+      setSuccess(decodeURIComponent(message));
+      setError("");
+      // Clean URL
+      setSearchParams({});
+    } else if (errorParam && message) {
+      setError(decodeURIComponent(message));
+      setSuccess("");
+      // Clean URL
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -133,6 +154,12 @@ export default function Login() {
               <p className="mt-2 text-xs text-slate-500">
                 Check your email for the verification code.
               </p>
+            </div>
+          )}
+
+          {success && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <p className="text-sm text-emerald-700">{success}</p>
             </div>
           )}
 

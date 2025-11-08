@@ -17,7 +17,12 @@ PORT=5000
 # Frontend URL (for redirects and email links)
 FRONTEND_URL=http://localhost:5173
 # For production:
-# FRONTEND_URL=https://your-frontend-url.com
+# FRONTEND_URL=https://login-authentication-system-mvp.vercel.app
+
+# Backend URL (for email verification links - should point to your Render backend)
+BACKEND_URL=http://localhost:5000
+# For production:
+# BACKEND_URL=https://loginauthenticationsystem-mvp.onrender.com
 
 # ====== Email Configuration ======
 # Choose ONE option below:
