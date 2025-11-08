@@ -16,9 +16,29 @@ Go to your Render dashboard → Your Service → Environment → Add the followi
 FRONTEND_URL=https://your-frontend-url.vercel.app
 # OR wherever your frontend is deployed
 
-EMAIL_SERVICE=gmail
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-gmail-app-password
+# ====== Email Service Configuration ======
+# Choose ONE option below:
+
+# Option 1: Brevo (Recommended - Works on Render)
+EMAIL_HOST=smtp-relay.brevo.com
+EMAIL_PORT=587
+EMAIL_USER=your_brevo_email@example.com
+EMAIL_PASS=your_brevo_smtp_key
+EMAIL_FROM=noreply@yourdomain.com
+
+# Option 2: SendGrid
+# EMAIL_HOST=smtp.sendgrid.net
+# EMAIL_PORT=587
+# EMAIL_USER=apikey
+# EMAIL_PASS=your_sendgrid_api_key
+# EMAIL_FROM=noreply@yourdomain.com
+
+# Option 3: Mailgun
+# EMAIL_HOST=smtp.mailgun.org
+# EMAIL_PORT=587
+# EMAIL_USER=your_mailgun_username
+# EMAIL_PASS=your_mailgun_password
+# EMAIL_FROM=noreply@yourdomain.com
 
 # Optional but recommended
 NODE_ENV=production

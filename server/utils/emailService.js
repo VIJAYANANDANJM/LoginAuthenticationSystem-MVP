@@ -4,49 +4,142 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Check if email is configured
-const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASS;
+// Support both traditional (EMAIL_USER/EMAIL_PASS) and API-based services
+const hasEmailConfig = (process.env.EMAIL_USER && process.env.EMAIL_PASS) || 
+                       (process.env.EMAIL_API_KEY && process.env.EMAIL_FROM);
 
 // Create transporter only if email is configured
 let transporter = null;
+let emailVerified = false;
+
 if (hasEmailConfig) {
   try {
-    transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Use App Password for Gmail
-      },
-      // Add timeout and connection settings for Render/cloud environments
-      connectionTimeout: 10000, // 10 seconds
+    const emailService = process.env.EMAIL_SERVICE?.toLowerCase() || "gmail";
+    
+    // Configure transporter based on service type
+    let transporterConfig = {
+      connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 10000,
-      // For Gmail specifically
       pool: true,
       maxConnections: 1,
-      maxMessages: 3,
-    });
+    };
+
+    // If EMAIL_HOST is provided, use custom SMTP configuration
+    // This works for SendGrid, Mailgun, Brevo, and other SMTP services
+    if (process.env.EMAIL_HOST) {
+      transporterConfig = {
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT || "587"),
+        secure: process.env.EMAIL_PORT === "465", // true for 465, false for other ports
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS || process.env.EMAIL_API_KEY,
+        },
+        ...transporterConfig,
+      };
+      console.log(`📧 Using SMTP: ${process.env.EMAIL_HOST}:${process.env.EMAIL_PORT}`);
+    }
+    // SendGrid configuration (if service is specified but no host)
+    else if (emailService === "sendgrid") {
+      transporterConfig = {
+        host: "smtp.sendgrid.net",
+        port: 587,
+        secure: false,
+        auth: {
+          user: "apikey",
+          pass: process.env.EMAIL_PASS || process.env.EMAIL_API_KEY,
+        },
+        ...transporterConfig,
+      };
+      console.log("📧 Using SendGrid SMTP");
+    }
+    // Mailgun configuration
+    else if (emailService === "mailgun") {
+      transporterConfig = {
+        host: "smtp.mailgun.org",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        ...transporterConfig,
+      };
+      console.log("📧 Using Mailgun SMTP");
+    }
+    // Brevo (Sendinblue) configuration
+    else if (emailService === "brevo" || emailService === "sendinblue") {
+      transporterConfig = {
+        host: "smtp-relay.brevo.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        ...transporterConfig,
+      };
+      console.log("📧 Using Brevo SMTP");
+    }
+    // Gmail or default
+    else {
+      transporterConfig = {
+        service: emailService,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+        ...transporterConfig,
+        secure: true,
+        tls: {
+          rejectUnauthorized: false,
+        },
+      };
+    }
+
+    transporter = nodemailer.createTransport(transporterConfig);
     
-    // Verify connection
+    console.log("📧 Email transporter created");
+    console.log("⏳ Verifying email connection (non-blocking)...");
+    
+    // Verify connection asynchronously (non-blocking)
+    // This allows server to start even if email verification fails
     transporter.verify((error, success) => {
       if (error) {
         console.error("❌ Email service verification failed:", error.message);
         console.log("⚠️  Emails will be logged to console instead");
-        transporter = null;
+        console.log("💡 Tip: Check EMAIL_USER and EMAIL_PASS in environment variables");
+        emailVerified = false;
+        // Don't set transporter to null - we'll try to use it anyway
+        // Some cloud providers block verification but allow actual sending
       } else {
-        console.log("✅ Email service configured and verified");
+        console.log("✅ Email service verified successfully");
+        emailVerified = true;
       }
     });
+    
+    // Set a timeout for verification (don't wait forever)
+    setTimeout(() => {
+      if (!emailVerified) {
+        console.log("⏱️  Email verification timeout - will attempt to send emails anyway");
+        console.log("⚠️  If emails fail, they will be logged to console");
+      }
+    }, 6000);
+    
   } catch (error) {
     console.error("❌ Email transporter creation error:", error.message);
     console.log("⚠️  Emails will be logged to console instead");
+    transporter = null;
   }
 } else {
   console.log("⚠️  Email not configured - emails will be logged to console");
+  console.log("💡 Set EMAIL_USER and EMAIL_PASS environment variables to enable email");
 }
 
 export const sendEmail = async (to, subject, html, text = "") => {
   try {
-    // If email not configured or transporter failed, log to console
+    // If email not configured, log to console
     if (!hasEmailConfig || !transporter) {
       console.log("\n" + "=".repeat(60));
       console.log("📧 EMAIL (Not Sent - Logged to Console)");
@@ -60,28 +153,35 @@ export const sendEmail = async (to, subject, html, text = "") => {
         console.log(text);
       }
       console.log("=".repeat(60) + "\n");
-      return { success: true, message: "Email logged (not sent)" };
+      return { success: false, message: "Email logged (not sent - not configured)" };
     }
 
     const mailOptions = {
-      from: process.env.EMAIL_USER || "noreply@loginauth.com",
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "noreply@loginauth.com",
       to,
       subject,
       html,
       text: text || html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
     };
 
-    // Add timeout wrapper
+    // Try to send email with shorter timeout for cloud environments
     const sendPromise = transporter.sendMail(mailOptions);
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Email send timeout after 15 seconds")), 15000)
+      setTimeout(() => reject(new Error("Email send timeout after 10 seconds")), 10000)
     );
 
-    const info = await Promise.race([sendPromise, timeoutPromise]);
-    console.log("✅ Email sent successfully:", info.messageId);
-    return { success: true, messageId: info.messageId };
+    try {
+      const info = await Promise.race([sendPromise, timeoutPromise]);
+      console.log("✅ Email sent successfully:", info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (sendError) {
+      // If send fails, log to console
+      throw sendError;
+    }
   } catch (error) {
     console.error("❌ Email sending error:", error.message);
+    console.log("💡 This is common on Render - emails are logged below for manual use");
+    
     // Fallback to console logging if email fails
     console.log("\n" + "=".repeat(60));
     console.log("📧 EMAIL (Fallback - Email sending failed)");
