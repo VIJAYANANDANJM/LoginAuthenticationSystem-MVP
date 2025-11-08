@@ -157,7 +157,8 @@ app.post("/api/auth/register", async (req, res) => {
     backendUrl = backendUrl.replace(/\/$/, "");
     
     const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
-    const verificationUrl = `${backendUrl}/api/auth/verify-email?token=${verificationToken}&redirect=${encodeURIComponent(frontendUrl)}`;
+    const verificationUrl =`${frontendUrl}/verify-email?token=${verificationToken}`;
+
     
     // Log for debugging
     console.log("🔗 Generated verification URL:", verificationUrl);
@@ -188,7 +189,7 @@ app.post("/api/auth/register", async (req, res) => {
 app.get("/api/auth/verify-email", async (req, res) => {
   try {
     const { token, redirect } = req.query;
-    const frontendUrl = redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const baseUrl = frontendUrl.replace(/\/$/, "");
 
     if (!token) {
@@ -284,7 +285,8 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     backendUrl = backendUrl.replace(/\/$/, "");
     
     const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
-    const resetUrl = `${backendUrl}/api/auth/reset-password?token=${resetToken}&redirect=${encodeURIComponent(frontendUrl)}`;
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
     
     // Log for debugging
     console.log("🔗 Generated reset URL:", resetUrl);
