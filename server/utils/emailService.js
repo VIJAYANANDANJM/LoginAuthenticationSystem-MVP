@@ -122,13 +122,31 @@ export const sendPasswordResetEmail = async (email, token) => {
   // Remove trailing slash
   backendUrl = backendUrl.replace(/\/$/, "");
   
-  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+  // Get frontend URL and ensure it's valid
+  let frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  frontendUrl = frontendUrl.replace(/\/$/, "");
+  
+  // Validate frontend URL is a proper URL
+  try {
+    new URL(frontendUrl);
+  } catch (e) {
+    console.error("❌ Invalid FRONTEND_URL environment variable:", frontendUrl);
+    frontendUrl = "http://localhost:5173"; // Fallback to default
+  }
+  
+  // Construct the reset URL with proper encoding
   const resetUrl = `${backendUrl}/api/auth/reset-password?token=${token}&redirect=${encodeURIComponent(frontendUrl)}`;
   
   // Log for debugging
   if (!process.env.BACKEND_URL) {
     console.log("⚠️  BACKEND_URL not set, using fallback:", backendUrl);
   }
+  if (!process.env.FRONTEND_URL) {
+    console.log("⚠️  FRONTEND_URL not set, using fallback:", frontendUrl);
+  }
+  
+  console.log("🔗 Password reset URL constructed:", resetUrl);
+  
   const subject = "Reset Your Password";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -137,8 +155,9 @@ export const sendPasswordResetEmail = async (email, token) => {
       <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0288d1; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
         Reset Password
       </a>
-      <p>If you didn’t request this, please ignore this email.</p>
+      <p>If you didn't request this, please ignore this email.</p>
       <p style="color: #999; font-size: 12px;">This link will expire in 1 hour.</p>
+      <p style="color: #666; font-size: 11px; word-break: break-all;">Or copy this link: ${resetUrl}</p>
     </div>
   `;
   return sendEmail(email, subject, html);

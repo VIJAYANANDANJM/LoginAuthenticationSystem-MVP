@@ -311,12 +311,48 @@ app.post("/api/auth/forgot-password", async (req, res) => {
 });
 
 // ====== Reset Password API ======
+// Middleware to catch and fix malformed reset password URLs
+app.use("/api/auth/reset-password", (req, res, next) => {
+  // Check if the URL path contains malformed patterns (like FRONTEND_URL= in the path)
+  if (req.path && (req.path.includes("FRONTEND_URL=") || req.originalUrl.includes("FRONTEND_URL="))) {
+    console.error("❌ Malformed reset password URL detected:", req.originalUrl);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const baseUrl = frontendUrl.replace(/\/$/, "");
+    return res.redirect(`${baseUrl}/?error=reset_failed&message=${encodeURIComponent("Invalid reset link. Please request a new password reset.")}`);
+  }
+  next();
+});
+
 // GET endpoint - shows reset password form or redirects
 app.get("/api/auth/reset-password", async (req, res) => {
   try {
     const { token, redirect } = req.query;
-    const frontendUrl = redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    
+    // Get frontend URL - decode redirect if present, otherwise use env var
+    let frontendUrl;
+    if (redirect) {
+      try {
+        frontendUrl = decodeURIComponent(redirect);
+      } catch (e) {
+        console.warn("⚠️  Failed to decode redirect parameter:", redirect);
+        frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      }
+    } else {
+      frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    }
+    
+    // Clean and validate frontend URL
     const baseUrl = frontendUrl.replace(/\/$/, "");
+    
+    // Validate it's a proper URL
+    try {
+      new URL(baseUrl);
+    } catch (e) {
+      console.error("❌ Invalid frontend URL:", baseUrl);
+      const fallbackUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const fallbackBase = fallbackUrl.replace(/\/$/, "");
+      return res.redirect(`${fallbackBase}/?error=reset_failed&message=${encodeURIComponent("Invalid configuration.")}`);
+    }
 
     if (!token) {
       return res.redirect(`${baseUrl}/?error=reset_failed&message=${encodeURIComponent("Reset token is required.")}`);
@@ -336,7 +372,7 @@ app.get("/api/auth/reset-password", async (req, res) => {
     res.redirect(`${baseUrl}/reset-password?token=${token}`);
   } catch (error) {
     console.error("❌ Reset Password GET Error:", error);
-    const frontendUrl = req.query.redirect || process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const baseUrl = frontendUrl.replace(/\/$/, "");
     res.redirect(`${baseUrl}/?error=reset_failed&message=${encodeURIComponent("Server error.")}`);
   }
