@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useSearchParams, Link } from "react-router-dom";
+import { API_URL } from "../config";
 
 export default function VerifyEmail() {
   const [status, setStatus] = useState({ type: null, message: "" });
@@ -17,7 +18,7 @@ export default function VerifyEmail() {
       }
 
       try {
-        const res = await axios.get(`http://localhost:5000/api/auth/verify-email?token=${token}`);
+        const res = await axios.get(`${API_URL}/auth/verify-email?token=${token}`);
         setStatus({ type: "success", message: res.data.message });
       } catch (err) {
         setStatus({

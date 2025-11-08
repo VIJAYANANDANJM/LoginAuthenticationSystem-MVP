@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { API_URL } from "../config";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -12,7 +13,7 @@ export default function ForgotPassword() {
     setStatus({ type: null, message: "" });
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/forgot-password", { email });
+      const res = await axios.post(`${API_URL}/auth/forgot-password`, { email });
       let message = res.data.message || "If an account exists with this email, a password reset link has been sent.";
       
       // Show dev link if available

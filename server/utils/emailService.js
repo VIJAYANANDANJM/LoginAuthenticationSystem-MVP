@@ -16,10 +16,29 @@ if (hasEmailConfig) {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS, // Use App Password for Gmail
       },
+      // Add timeout and connection settings for Render/cloud environments
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      // For Gmail specifically
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3,
     });
-    console.log("✅ Email service configured");
+    
+    // Verify connection
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error("❌ Email service verification failed:", error.message);
+        console.log("⚠️  Emails will be logged to console instead");
+        transporter = null;
+      } else {
+        console.log("✅ Email service configured and verified");
+      }
+    });
   } catch (error) {
     console.error("❌ Email transporter creation error:", error.message);
+    console.log("⚠️  Emails will be logged to console instead");
   }
 } else {
   console.log("⚠️  Email not configured - emails will be logged to console");
@@ -27,10 +46,10 @@ if (hasEmailConfig) {
 
 export const sendEmail = async (to, subject, html, text = "") => {
   try {
-    // If email not configured, log to console
+    // If email not configured or transporter failed, log to console
     if (!hasEmailConfig || !transporter) {
       console.log("\n" + "=".repeat(60));
-      console.log("📧 EMAIL (Development Mode - Not Sent)");
+      console.log("📧 EMAIL (Not Sent - Logged to Console)");
       console.log("=".repeat(60));
       console.log("To:", to);
       console.log("Subject:", subject);
@@ -41,7 +60,7 @@ export const sendEmail = async (to, subject, html, text = "") => {
         console.log(text);
       }
       console.log("=".repeat(60) + "\n");
-      return { success: true, message: "Email logged (development mode)" };
+      return { success: true, message: "Email logged (not sent)" };
     }
 
     const mailOptions = {
@@ -52,7 +71,13 @@ export const sendEmail = async (to, subject, html, text = "") => {
       text: text || html.replace(/<[^>]*>/g, ""), // Strip HTML for text version
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    // Add timeout wrapper
+    const sendPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Email send timeout after 15 seconds")), 15000)
+    );
+
+    const info = await Promise.race([sendPromise, timeoutPromise]);
     console.log("✅ Email sent successfully:", info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {

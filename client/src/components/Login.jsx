@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { API_URL } from "../config";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${API_URL}/auth/login`, {
         email,
         password,
         otp: requires2FA ? otp : undefined,
@@ -46,7 +47,7 @@ export default function Login() {
 
   const handleResendVerification = async () => {
     try {
-      await axios.post("http://localhost:5000/api/auth/resend-verification", { email });
+      await axios.post(`${API_URL}/auth/resend-verification`, { email });
       setError("Verification email sent! Please check your inbox.");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to send verification email.");
@@ -70,7 +71,7 @@ export default function Login() {
           Sign up
         </Link>
         <a
-          href="http://localhost:5000/api/auth/google"
+          href={`${API_URL.replace('/api', '')}/auth/google`}
           className="rounded-lg border border-sky-900/20 px-4 py-1 text-sm font-medium text-sky-900/90 transition hover:bg-white/80 hover:text-sky-900"
         >
           Google

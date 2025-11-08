@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { API_URL } from "../config";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -25,7 +26,7 @@ export default function Dashboard() {
 
     const fetchProfile = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/auth/profile", {
+        const res = await axios.get(`${API_URL}/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);
@@ -51,14 +52,14 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (twoFactorStatus) {
         await axios.post(
-          "http://localhost:5000/api/auth/disable-2fa",
+          `${API_URL}/auth/disable-2fa`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setTwoFactorStatus(false);
       } else {
         const res = await axios.post(
-          "http://localhost:5000/api/auth/enable-2fa",
+          `${API_URL}/auth/enable-2fa`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );

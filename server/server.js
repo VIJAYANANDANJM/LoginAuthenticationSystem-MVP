@@ -135,13 +135,14 @@ app.post("/api/auth/register", async (req, res) => {
     // Send verification email
     const emailResult = await sendVerificationEmail(email, verificationToken);
     
-    // In development, include the verification link in response
+    // Always log verification link (especially if email failed)
     const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/verify-email?token=${verificationToken}`;
     
-    if (!process.env.EMAIL_USER) {
-      console.log("\n🔗 Verification Link (Copy this):");
+    if (!emailResult.success || !process.env.EMAIL_USER) {
+      console.log("\n" + "=".repeat(60));
+      console.log("🔗 VERIFICATION LINK (Copy this if email failed):");
       console.log(verificationUrl);
-      console.log("");
+      console.log("=".repeat(60) + "\n");
     }
 
     res.status(201).json({
@@ -238,15 +239,16 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     user.resetTokenExpiry = resetTokenExpiry;
     await user.save();
 
-    await sendPasswordResetEmail(user.email, resetToken);
+    const emailResult = await sendPasswordResetEmail(user.email, resetToken);
     
-    // In development, include the reset link in response
+    // Always log reset link (especially if email failed)
     const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`;
     
-    if (!process.env.EMAIL_USER) {
-      console.log("\n🔗 Password Reset Link (Copy this):");
+    if (!emailResult.success || !process.env.EMAIL_USER) {
+      console.log("\n" + "=".repeat(60));
+      console.log("🔗 PASSWORD RESET LINK (Copy this if email failed):");
       console.log(resetUrl);
-      console.log("");
+      console.log("=".repeat(60) + "\n");
     }
 
     res.status(200).json({

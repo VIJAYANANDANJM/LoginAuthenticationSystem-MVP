@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { API_URL } from "../config";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -14,7 +15,7 @@ export default function Register() {
     setStatus({ type: null, message: "" });
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", { email, password });
+      const res = await axios.post(`${API_URL}/auth/register`, { email, password });
       let message = res.data.message || "Registration successful! Please check your email to verify your account.";
       
       // Show dev link if available
@@ -53,7 +54,7 @@ export default function Register() {
           Back to Login
         </Link>
         <a
-          href="http://localhost:5000/api/auth/google"
+          href={`${API_URL.replace('/api', '')}/auth/google`}
           className="rounded-lg border border-sky-900/20 px-4 py-1 text-sm font-medium text-sky-900/90 transition hover:bg-white/80 hover:text-sky-900"
         >
           Google
