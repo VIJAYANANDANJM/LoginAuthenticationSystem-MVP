@@ -76,9 +76,17 @@ export const sendEmail = async (to, subject, html, text = "") => {
  */
 export const sendVerificationEmail = async (email, token) => {
   // Use backend API endpoint for verification (verifies and redirects to frontend)
-  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+  const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";  
+  // Remove trailing slash
+  backendUrl = backendUrl.replace(/\/$/, "");
+  
   const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
   const verificationUrl = `${backendUrl}/api/auth/verify-email?token=${token}&redirect=${encodeURIComponent(frontendUrl)}`;
+  
+  // Log for debugging
+  if (!process.env.BACKEND_URL) {
+    console.log("⚠️  BACKEND_URL not set, using fallback:", backendUrl);
+  }
   const subject = "Verify Your Email Address";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -100,9 +108,22 @@ export const sendVerificationEmail = async (email, token) => {
  */
 export const sendPasswordResetEmail = async (email, token) => {
   // Use backend API endpoint for password reset (redirects to frontend)
-  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+  // Try multiple sources for backend URL
+  let backendUrl = process.env.BACKEND_URL || 
+                   process.env.API_URL || 
+                   process.env.RENDER_EXTERNAL_URL || 
+                   (process.env.NODE_ENV === "production" ? "https://loginauthenticationsystem-mvp.onrender.com" : "http://localhost:5000");
+  
+  // Remove trailing slash
+  backendUrl = backendUrl.replace(/\/$/, "");
+  
   const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
   const resetUrl = `${backendUrl}/api/auth/reset-password?token=${token}&redirect=${encodeURIComponent(frontendUrl)}`;
+  
+  // Log for debugging
+  if (!process.env.BACKEND_URL) {
+    console.log("⚠️  BACKEND_URL not set, using fallback:", backendUrl);
+  }
   const subject = "Reset Your Password";
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

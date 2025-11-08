@@ -147,9 +147,20 @@ app.post("/api/auth/register", async (req, res) => {
     const emailResult = await sendVerificationEmail(email, verificationToken);
     
     // Always log verification link (especially if email failed)
-    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+    // Try multiple sources for backend URL
+    let backendUrl = process.env.BACKEND_URL || 
+                     process.env.API_URL || 
+                     process.env.RENDER_EXTERNAL_URL || 
+                     (process.env.NODE_ENV === "production" ? "https://loginauthenticationsystem-mvp.onrender.com" : "http://localhost:5000");
+    
+    // Remove trailing slash
+    backendUrl = backendUrl.replace(/\/$/, "");
+    
     const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
     const verificationUrl = `${backendUrl}/api/auth/verify-email?token=${verificationToken}&redirect=${encodeURIComponent(frontendUrl)}`;
+    
+    // Log for debugging
+    console.log("🔗 Generated verification URL:", verificationUrl);
     
     if (!emailResult.success || !process.env.BREVO_API_KEY) {
       console.log("\n" + "=".repeat(60));
@@ -263,9 +274,20 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     const emailResult = await sendPasswordResetEmail(user.email, resetToken);
     
     // Always log reset link (especially if email failed)
-    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || "http://localhost:5000";
+    // Try multiple sources for backend URL
+    let backendUrl = process.env.BACKEND_URL || 
+                     process.env.API_URL || 
+                     process.env.RENDER_EXTERNAL_URL || 
+                     (process.env.NODE_ENV === "production" ? "https://loginauthenticationsystem-mvp.onrender.com" : "http://localhost:5000");
+    
+    // Remove trailing slash
+    backendUrl = backendUrl.replace(/\/$/, "");
+    
     const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
     const resetUrl = `${backendUrl}/api/auth/reset-password?token=${resetToken}&redirect=${encodeURIComponent(frontendUrl)}`;
+    
+    // Log for debugging
+    console.log("🔗 Generated reset URL:", resetUrl);
     
     if (!emailResult.success || !process.env.BREVO_API_KEY) {
       console.log("\n" + "=".repeat(60));
